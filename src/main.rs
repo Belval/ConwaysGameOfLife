@@ -71,38 +71,41 @@ fn main() {
     let mut pos_y: f32 = 0.0;
     let mut keys = [false, false, false, false];
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
-    let mut map: Array2d = Array2d::new(1000, 1000);
+    let mut map: Array2d = Array2d::new(200, 200);
     
-    map.set_element_at(32, 32, 1);
-    map.set_element_at(128, 128, 1);
+    map.set_random_elements(500, 1);
 
     loop {
         let mut target = display.draw();
-        // Draw the cells
-        let mut cellVec = Vec<i32>::new();
-
-        for x in 0..map.width() {
-            for y in 0..map.height() {
-                if map.element_at(x, y) == 1 {
-                    let vertex1 = Vertex { position: [0.05, -0.05] };
-                    let vertex2 = Vertex { position: [0.05, 0.05] };
-                    let vertex3 = Vertex { position: [-0.05, -0.05] };
-                    let vertex4 = Vertex { position: [-0.05, 0.05] };
-
-    let shape = vec![vertex1, vertex2, vertex3, vertex4];
-
-    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap(); 
-                    target.draw(&)
-                }
-            }
-        }
-
+        
         // Draw the red square
         if keys[0] { pos_y += 0.01 }
         if keys[1] { pos_y -= 0.01 }
         if keys[2] { pos_x -= 0.01 }
         if keys[3] { pos_x += 0.01 }
         target.clear_color(100.0, 100.0, 100.0, 1.0);
+
+        for x in 0..map.width() {
+            for y in 0..map.height() {
+                let count_surrounding = map.get_surrounding_count(x, y);
+                if count_surrounding < 2 || count_surrounding > 3 {
+                    map.set_element_at(x, y, 0);
+                } else if count_surrounding == 3 {
+                    map.set_element_at(x, y, 1);
+                }
+                if map.element_at(x, y) == 1 {
+                    let cell_pos_x = x as f32 / 500.0 - 1.;
+                    let cell_pos_y = y as f32 / 500.0 - 1.;
+                    let cell_vertex1 = Vertex { position: [cell_pos_x - pos_x, cell_pos_y - pos_y - 0.01] };
+                    let cell_vertex2 = Vertex { position: [cell_pos_x - pos_x, cell_pos_y - pos_y] };
+                    let cell_vertex3 = Vertex { position: [cell_pos_x - pos_x - 0.01, cell_pos_y - pos_y - 0.01] };
+                    let cell_vertex4 = Vertex { position: [cell_pos_x - pos_x - 0.01, cell_pos_y - pos_y] };
+                    let cell_shape = vec![cell_vertex1, cell_vertex2, cell_vertex3, cell_vertex4];
+                    let cell_vertex_buffer = glium::VertexBuffer::new(&display, &cell_shape).unwrap(); 
+                    target.draw(&cell_vertex_buffer, &indices, &program, &uniform!{ }, &Default::default()).unwrap();
+                }
+            }
+        }
 
         target.draw(&vertex_buffer, &indices, &program, &uniform!{ posX: pos_x, posY: pos_y }, &Default::default()).unwrap();
         target.finish().unwrap();
