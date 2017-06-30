@@ -1,0 +1,8 @@
+[package]
+name = "glium_exp"
+version = "0.1.0"
+authors = ["KanKroc <edouardbelval@hotmail.com>"]
+
+[dependencies]
+glium = "*"
+rand = "0.3"
