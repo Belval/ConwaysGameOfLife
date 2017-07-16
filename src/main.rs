@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate glium;
 
+use std::time::Duration;
+use std::thread;
+
 mod array_2d;
 
 fn handle_keyboard_event(state: glium::glutin::ElementState, key: Option<glium::glutin::VirtualKeyCode>, keys: &mut [bool]) {
@@ -71,12 +74,13 @@ fn main() {
     let mut pos_y: f32 = 0.0;
     let mut keys = [false, false, false, false];
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
-    let mut map: Array2d = Array2d::new(200, 200);
+    let mut map: Array2d = Array2d::new(50, 50);
     
-    map.set_random_elements(500, 1);
+    map.set_random_elements(60, 1);
 
     loop {
         let mut target = display.draw();
+        let mut new_map: Array2d = Array2d::new(200, 200);
         
         // Draw the red square
         if keys[0] { pos_y += 0.01 }
@@ -88,24 +92,30 @@ fn main() {
         for x in 0..map.width() {
             for y in 0..map.height() {
                 let count_surrounding = map.get_surrounding_count(x, y);
-                if count_surrounding < 2 || count_surrounding > 3 {
-                    map.set_element_at(x, y, 0);
+                let mut is_alive = map.element_at(x, y) == 1;
+                if (count_surrounding < 2 || count_surrounding > 3) && is_alive {
+                    new_map.set_element_at(x, y, 0);
+                    is_alive = false;
                 } else if count_surrounding == 3 {
-                    map.set_element_at(x, y, 1);
+                    new_map.set_element_at(x, y, 1);
+                    is_alive = true;
                 }
-                if map.element_at(x, y) == 1 {
-                    let cell_pos_x = x as f32 / 500.0 - 1.;
-                    let cell_pos_y = y as f32 / 500.0 - 1.;
-                    let cell_vertex1 = Vertex { position: [cell_pos_x - pos_x, cell_pos_y - pos_y - 0.01] };
+                if is_alive {
+                    new_map.set_element_at(x, y, 1);
+                    let cell_pos_x = x as f32 / 25.0 - 1.;
+                    let cell_pos_y = y as f32 / 25.0 - 1.;
+                    let cell_vertex1 = Vertex { position: [cell_pos_x - pos_x, cell_pos_y - pos_y - 0.025] };
                     let cell_vertex2 = Vertex { position: [cell_pos_x - pos_x, cell_pos_y - pos_y] };
-                    let cell_vertex3 = Vertex { position: [cell_pos_x - pos_x - 0.01, cell_pos_y - pos_y - 0.01] };
-                    let cell_vertex4 = Vertex { position: [cell_pos_x - pos_x - 0.01, cell_pos_y - pos_y] };
+                    let cell_vertex3 = Vertex { position: [cell_pos_x - pos_x - 0.025, cell_pos_y - pos_y - 0.025] };
+                    let cell_vertex4 = Vertex { position: [cell_pos_x - pos_x - 0.025, cell_pos_y - pos_y] };
                     let cell_shape = vec![cell_vertex1, cell_vertex2, cell_vertex3, cell_vertex4];
                     let cell_vertex_buffer = glium::VertexBuffer::new(&display, &cell_shape).unwrap(); 
                     target.draw(&cell_vertex_buffer, &indices, &program, &uniform!{ }, &Default::default()).unwrap();
                 }
             }
         }
+
+        map = new_map;
 
         target.draw(&vertex_buffer, &indices, &program, &uniform!{ posX: pos_x, posY: pos_y }, &Default::default()).unwrap();
         target.finish().unwrap();
@@ -116,5 +126,6 @@ fn main() {
                 _ => ()
             }
         }
+    thread::sleep(Duration::from_millis(500))
     }
 }
