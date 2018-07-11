@@ -18,14 +18,16 @@ fn handle_keyboard_event(state: glium::glutin::ElementState, key: Option<glium::
 }
 
 fn main() {
-    use glium::{DisplayBuild, Surface};
+    use glium::Surface;
     use array_2d::Array2d;
 
-    let display = glium::glutin::WindowBuilder::new()
+    let mut events_loop = glium::glutin::EventsLoop::new();
+
+    let window = glium::glutin::WindowBuilder::new()
          .with_dimensions(800, 800)
-         .with_title(format!("Experiment"))
-         .build_glium()
-         .unwrap();
+         .with_title(format!("Experiment"));
+    let context = glium::glutin::ContextBuilder::new();
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     #[derive(Copy, Clone)]
     struct Vertex {
@@ -72,7 +74,7 @@ fn main() {
     
     let mut pos_x: f32 = 0.0;
     let mut pos_y: f32 = 0.0;
-    let mut keys = [false, false, false, false];
+    let mut user_keys = [false, false, false, false];
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
     let mut map: Array2d = Array2d::new(50, 50);
     
@@ -83,10 +85,10 @@ fn main() {
         let mut new_map: Array2d = Array2d::new(200, 200);
         
         // Draw the red square
-        if keys[0] { pos_y += 0.01 }
-        if keys[1] { pos_y -= 0.01 }
-        if keys[2] { pos_x -= 0.01 }
-        if keys[3] { pos_x += 0.01 }
+        if user_keys[0] { pos_y += 0.01 }
+        if user_keys[1] { pos_y -= 0.01 }
+        if user_keys[2] { pos_x -= 0.01 }
+        if user_keys[3] { pos_x += 0.01 }
         target.clear_color(100.0, 100.0, 100.0, 1.0);
 
         for x in 0..map.width() {
@@ -119,13 +121,16 @@ fn main() {
 
         target.draw(&vertex_buffer, &indices, &program, &uniform!{ posX: pos_x, posY: pos_y }, &Default::default()).unwrap();
         target.finish().unwrap();
-        for ev in display.poll_events() {
+        events_loop.poll_events(|ev| {
             match ev {
-                glium::glutin::Event::KeyboardInput(state, _, key) => handle_keyboard_event(state, key, &mut keys),
-                glium::glutin::Event::Closed => return,
+                glium::glutin::Event::WindowEvent { event, .. } => match event {
+                    glium::glutin::WindowEvent::KeyboardInput { device_id, input } => handle_keyboard_event(input.state, input.virtual_keycode, &mut user_keys),
+                    glium::glutin::WindowEvent::Closed => return,
+                    _ => (),
+                },
                 _ => ()
             }
-        }
-    thread::sleep(Duration::from_millis(500))
+        });
+    //thread::sleep(Duration::from_millis(500))
     }
 }
